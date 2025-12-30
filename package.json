@@ -18,8 +18,8 @@
   "author": "sk8metalme",
   "license": "MIT",
   "devDependencies": {
-    "typescript": "^5.0.0",
-    "esbuild": "^0.20.0",
-    "@types/node": "^20.0.0"
+    "typescript": "^5.9.3",
+    "esbuild": "^0.27.2",
+    "@types/node": "^25.0.3"
   }
 }

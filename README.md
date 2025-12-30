@@ -191,7 +191,7 @@ npm run build
 
 This action includes its own TypeScript source code:
 
-```
+```text
 src/
 ├── domain/           # Domain models (KnowledgeItem, Category, Language, etc.)
 ├── application/      # Use cases (ApplyKnowledgeUseCase)

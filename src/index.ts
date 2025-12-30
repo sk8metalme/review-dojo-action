@@ -84,7 +84,7 @@ async function main(): Promise<void> {
               knowledge_items: items
             });
             console.log(`Updated ${category}/${language}.md: ${count} items`);
-            return items.length;
+            return count;
           } catch (fileError: any) {
             console.error(`Error updating ${key}: ${fileError.message}`);
             return 0;

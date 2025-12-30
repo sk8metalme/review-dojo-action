@@ -120,6 +120,27 @@ export class MarkdownSerializer implements IMarkdownSerializer {
       }
     }
 
+    // コード例を抽出
+    const codeExampleSection = section.match(/\*\*コード例\*\*:\s*([\s\S]*?)(?=\n-\s+\*\*|$)/);
+    let codeExample: { bad?: string; good?: string } | undefined;
+    if (codeExampleSection) {
+      const codeBlocks = codeExampleSection[1].match(/```[\s\S]*?```/g);
+      if (codeBlocks) {
+        const badBlock = codeBlocks.find(block => block.includes('// NG'));
+        const goodBlock = codeBlocks.find(block => block.includes('// OK'));
+
+        if (badBlock || goodBlock) {
+          codeExample = {};
+          if (badBlock) {
+            codeExample.bad = badBlock.replace(/```\n?/g, '').replace(/\s*\/\/\s*NG\n/, '').trim();
+          }
+          if (goodBlock) {
+            codeExample.good = goodBlock.replace(/```\n?/g, '').replace(/\s*\/\/\s*OK\n/, '').trim();
+          }
+        }
+      }
+    }
+
     // 発生回数を取得（デフォルトは1）
     const occurrences = occurrencesMatch ? parseInt(occurrencesMatch[1], 10) : 1;
 
@@ -131,7 +152,8 @@ export class MarkdownSerializer implements IMarkdownSerializer {
       recommendation: recommendationMatch ? recommendationMatch[1].trim() : '',
       occurrences,
       file_path: targetFileMatch ? targetFileMatch[1].trim() : undefined,
-      pr_urls: references
+      pr_urls: references,
+      code_example: codeExample
     });
 
     return item;

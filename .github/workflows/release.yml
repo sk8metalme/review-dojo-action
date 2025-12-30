@@ -31,7 +31,7 @@ jobs:
           if ! git diff --quiet dist/; then
             git add dist/
             git commit -m "chore: build dist for release"
-            git push
+            git push origin HEAD:main
           fi
 
       - name: Extract version
