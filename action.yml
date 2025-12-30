@@ -1,0 +1,149 @@
+name: 'Review-Dojo Knowledge Collector'
+description: 'Collect review knowledge from merged PRs using AI-powered analysis'
+author: 'sk8metalme'
+branding:
+  icon: 'book-open'
+  color: 'blue'
+
+inputs:
+  anthropic-api-key:
+    description: 'Anthropic API key for Claude Code'
+    required: true
+  github-token:
+    description: 'GitHub token for API access'
+    required: true
+  pr-url:
+    description: 'PR URL to analyze'
+    required: true
+  repo-owner:
+    description: 'Repository owner'
+    required: true
+  repo-name:
+    description: 'Repository name'
+    required: true
+  pr-number:
+    description: 'PR number'
+    required: true
+
+outputs:
+  knowledge-collected:
+    description: 'Whether knowledge was successfully collected (true/false)'
+    value: ${{ steps.apply.outputs.collected }}
+  knowledge-file:
+    description: 'Path to the generated knowledge.json'
+    value: ${{ steps.collect.outputs.file }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: Check repository visibility
+      id: repo-check
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+      run: |
+        VISIBILITY=$(gh api repos/${{ inputs.repo-owner }}/${{ inputs.repo-name }} --jq '.private')
+        if [ "$VISIBILITY" == "true" ]; then
+          echo "Private repository detected. Skipping knowledge collection."
+          echo "skip=true" >> $GITHUB_OUTPUT
+        else
+          echo "Public repository. Proceeding with knowledge collection."
+          echo "skip=false" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Check for resolved review comments
+      if: steps.repo-check.outputs.skip == 'false'
+      id: comment-check
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+      run: |
+        RESOLVED_COUNT=$(gh api graphql -f query='
+          query($owner: String!, $repo: String!, $number: Int!) {
+            repository(owner: $owner, name: $repo) {
+              pullRequest(number: $number) {
+                reviewThreads(first: 100) {
+                  nodes {
+                    isResolved
+                    comments(first: 1) {
+                      nodes {
+                        body
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ' -f owner=${{ inputs.repo-owner }} \
+          -f repo=${{ inputs.repo-name }} \
+          -F number=${{ inputs.pr-number }} \
+          --jq '[.data.repository.pullRequest.reviewThreads.nodes[] | select(.isResolved == true)] | length')
+
+        echo "Found $RESOLVED_COUNT resolved threads"
+
+        if [ "$RESOLVED_COUNT" -lt "1" ]; then
+          echo "No resolved threads. Skipping knowledge collection."
+          echo "skip=true" >> $GITHUB_OUTPUT
+        else
+          echo "skip=false" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Install Claude Code CLI
+      if: steps.repo-check.outputs.skip == 'false' && steps.comment-check.outputs.skip == 'false'
+      shell: bash
+      run: npm install -g @anthropic-ai/claude-code
+
+    - name: Collect knowledge with Claude Code
+      if: steps.repo-check.outputs.skip == 'false' && steps.comment-check.outputs.skip == 'false'
+      id: collect
+      shell: bash
+      env:
+        ANTHROPIC_API_KEY: ${{ inputs.anthropic-api-key }}
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+        PR_URL: ${{ inputs.pr-url }}
+        REPO_OWNER: ${{ inputs.repo-owner }}
+        REPO_NAME: ${{ inputs.repo-name }}
+        PR_NUMBER: ${{ inputs.pr-number }}
+      run: |
+        MAX_RETRIES=3
+        RETRY_COUNT=0
+        RETRY_DELAY=5
+
+        while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+          if claude -p "$(cat ${{ github.action_path }}/scripts/collect-knowledge.md)" \
+            --allowedTools "Bash(gh:*),Read,Write,Edit" \
+            --output-format text; then
+            echo "Knowledge collection successful"
+            echo "file=knowledge.json" >> $GITHUB_OUTPUT
+            break
+          else
+            RETRY_COUNT=$((RETRY_COUNT + 1))
+            if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
+              echo "Retry $RETRY_COUNT/$MAX_RETRIES after ${RETRY_DELAY}s..."
+              sleep $RETRY_DELAY
+              RETRY_DELAY=$((RETRY_DELAY * 3))
+            else
+              echo "Failed after $MAX_RETRIES attempts"
+              exit 1
+            fi
+          fi
+        done
+
+    - name: Apply knowledge to markdown files
+      if: steps.repo-check.outputs.skip == 'false' && steps.comment-check.outputs.skip == 'false'
+      id: apply
+      shell: bash
+      run: |
+        if [ -f knowledge.json ]; then
+          node ${{ github.action_path }}/dist/index.js knowledge.json
+          echo "collected=true" >> $GITHUB_OUTPUT
+        else
+          echo "No knowledge.json generated."
+          echo "collected=false" >> $GITHUB_OUTPUT
+        fi

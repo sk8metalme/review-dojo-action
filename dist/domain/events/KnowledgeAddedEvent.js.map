@@ -1,0 +1,1 @@
+{"version":3,"file":"KnowledgeAddedEvent.js","sourceRoot":"","sources":["../../../src/domain/events/KnowledgeAddedEvent.ts"],"names":[],"mappings":"AAEA;;GAEG;AACH,MAAM,OAAO,mBAAmB;IAKnB;IACA;IALF,SAAS,GAAG,gBAAgB,CAAC;IAC7B,UAAU,CAAO;IAE1B,YACW,KAAa,EACb,QAAgB;QADhB,UAAK,GAAL,KAAK,CAAQ;QACb,aAAQ,GAAR,QAAQ,CAAQ;QAEzB,IAAI,CAAC,UAAU,GAAG,IAAI,IAAI,EAAE,CAAC;IAC/B,CAAC;CACF"}

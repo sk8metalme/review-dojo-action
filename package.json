@@ -1,0 +1,16 @@
+{
+  "name": "review-dojo-action",
+  "version": "1.0.0",
+  "description": "GitHub Action for review-dojo knowledge collection",
+  "type": "module",
+  "private": true,
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sk8metalme/review-dojo-action.git"
+  },
+  "author": "sk8metalme",
+  "license": "MIT"
+}
