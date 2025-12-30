@@ -171,6 +171,68 @@ The action includes retry logic with exponential backoff. If you encounter rate 
 - Reducing the frequency of PR merges
 - Using a GitHub token with higher rate limits
 
+## Development
+
+### Prerequisites
+
+- Node.js 20+
+- npm
+
+### Setup
+
+```bash
+git clone https://github.com/sk8metalme/review-dojo-action.git
+cd review-dojo-action
+npm install
+npm run build
+```
+
+### Architecture
+
+This action includes its own TypeScript source code:
+
+```
+src/
+├── domain/           # Domain models (KnowledgeItem, Category, Language, etc.)
+├── application/      # Use cases (ApplyKnowledgeUseCase)
+│   ├── use-cases/    # Application use cases
+│   └── ports/        # Port interfaces
+├── infrastructure/   # Implementations (FileSystemKnowledgeRepository, MarkdownSerializer)
+└── index.ts          # Entry point
+```
+
+### Build
+
+The build process uses esbuild to create a single bundled file:
+
+```bash
+npm run build
+# Outputs: dist/index.js (28KB)
+```
+
+### Testing Locally
+
+```bash
+# Create a sample knowledge.json
+cat > knowledge.json << 'EOF'
+{
+  "knowledge_items": [
+    {
+      "category": "security",
+      "language": "java",
+      "severity": "critical",
+      "title": "Test Knowledge",
+      "summary": "Test summary",
+      "recommendation": "Test recommendation"
+    }
+  ]
+}
+EOF
+
+# Run the apply command
+node dist/index.js knowledge.json
+```
+
 ## License
 
 MIT

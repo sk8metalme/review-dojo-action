@@ -1,1 +1,0 @@
-{"version":3,"file":"versionCheck.d.ts","sourceRoot":"","sources":["../../../src/interfaces/mcp/versionCheck.ts"],"names":[],"mappings":"AAMA,MAAM,WAAW,kBAAkB;IACjC,cAAc,EAAE,MAAM,CAAC;IACvB,aAAa,EAAE,MAAM,CAAC;IACtB,eAAe,EAAE,OAAO,CAAC;IACzB,aAAa,EAAE,MAAM,CAAC;CACvB;AAED;;;;GAIG;AACH,wBAAsB,eAAe,CAAC,UAAU,CAAC,EAAE,MAAM,GAAG,OAAO,CAAC,kBAAkB,GAAG,IAAI,CAAC,CA2D7F"}

@@ -7,10 +7,19 @@
   "engines": {
     "node": ">=20.0.0"
   },
+  "scripts": {
+    "build": "esbuild src/index.ts --bundle --platform=node --target=node20 --format=esm --outfile=dist/index.js",
+    "typecheck": "tsc --noEmit"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/sk8metalme/review-dojo-action.git"
   },
   "author": "sk8metalme",
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "esbuild": "^0.20.0",
+    "@types/node": "^20.0.0"
+  }
 }
