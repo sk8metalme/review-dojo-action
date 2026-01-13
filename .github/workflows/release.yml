@@ -27,7 +27,7 @@ jobs:
       - name: Commit and push dist
         run: |
           git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.email "${{ vars.GIT_BOT_EMAIL || 'github-actions[bot]@users.noreply.github.com' }}"
           if ! git diff --quiet dist/; then
             git add dist/
             git commit -m "chore: build dist for release"
@@ -48,6 +48,6 @@ jobs:
         run: |
           MAJOR_VERSION=$(echo "${{ steps.version.outputs.version }}" | cut -d. -f1)
           git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.email "${{ vars.GIT_BOT_EMAIL || 'github-actions[bot]@users.noreply.github.com' }}"
           git tag -f $MAJOR_VERSION
           git push -f origin $MAJOR_VERSION

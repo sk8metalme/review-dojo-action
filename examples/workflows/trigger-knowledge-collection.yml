@@ -1,6 +1,11 @@
 name: Trigger Knowledge Collection
 
 # このワークフローは各リポジトリに配置し、PRマージ時にknowledge-repoへ通知します
+#
+# 使い方:
+# 1. このファイルを .github/workflows/ にコピー
+# 2. repository: の値を自分の knowledge-repo に変更
+# 3. ORG_GITHUB_TOKEN シークレットを設定
 
 on:
   pull_request:
@@ -18,7 +23,7 @@ jobs:
         with:
           # knowledge-repoのリポジトリ情報を指定
           token: ${{ secrets.ORG_GITHUB_TOKEN }}
-          repository: sk8metalme/review-dojo-knowledge
+          repository: YOUR_ORG/YOUR_KNOWLEDGE_REPO  # 例: sk8metalme/review-dojo-knowledge
           event-type: pr-merged
           client-payload: |
             {

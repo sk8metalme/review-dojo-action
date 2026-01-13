@@ -2,9 +2,23 @@
  * Pull RequestのURL参照を表すValue Object
  */
 export class PRReference {
-  private static readonly GITHUB_PR_PATTERN = /^https:\/\/github\.com\/[^/]+\/[^/]+\/pull\/\d+$/;
-
   private constructor(private readonly url: string) {}
+
+  /**
+   * GitHub ホストを環境変数から取得
+   * 優先順位: GH_HOST → GITHUB_HOST → デフォルト (github.com)
+   */
+  private static getGitHubHost(): string {
+    return process.env.GH_HOST || process.env.GITHUB_HOST || 'github.com';
+  }
+
+  /**
+   * GitHub PR URL のバリデーションパターンを動的生成
+   */
+  private static buildPRPattern(): RegExp {
+    const host = PRReference.getGitHubHost().replace(/\./g, '\\.');
+    return new RegExp(`^https:\\/\\/${host}\\/[^/]+\\/[^/]+\\/pull\\/\\d+$`);
+  }
 
   static create(url: string): PRReference {
     if (!url || typeof url !== 'string') {
@@ -12,9 +26,11 @@ export class PRReference {
     }
 
     // GitHub PR URLの形式をチェック
-    if (!PRReference.GITHUB_PR_PATTERN.test(url)) {
+    const pattern = PRReference.buildPRPattern();
+    if (!pattern.test(url)) {
+      const host = PRReference.getGitHubHost();
       throw new Error(
-        `Invalid PR reference URL: ${url}. Must be a GitHub PR URL (e.g., https://github.com/owner/repo/pull/123)`
+        `Invalid PR reference URL: ${url}. Must be a GitHub PR URL (e.g., https://${host}/owner/repo/pull/123)`
       );
     }
 
@@ -40,7 +56,8 @@ export class PRReference {
    * リポジトリオーナーを抽出
    */
   getOwner(): string {
-    const match = this.url.match(/github\.com\/([^/]+)\//);
+    const host = PRReference.getGitHubHost().replace(/\./g, '\\.');
+    const match = this.url.match(new RegExp(`${host}\\/([^/]+)\\/`));
     if (!match) {
       throw new Error(`Failed to extract owner from URL: ${this.url}`);
     }
@@ -51,7 +68,8 @@ export class PRReference {
    * リポジトリ名を抽出
    */
   getRepository(): string {
-    const match = this.url.match(/github\.com\/[^/]+\/([^/]+)\//);
+    const host = PRReference.getGitHubHost().replace(/\./g, '\\.');
+    const match = this.url.match(new RegExp(`${host}\\/[^/]+\\/([^/]+)\\/`));
     if (!match) {
       throw new Error(`Failed to extract repository from URL: ${this.url}`);
     }
