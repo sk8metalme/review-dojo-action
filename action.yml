@@ -6,6 +6,10 @@ branding:
   color: 'blue'
 
 inputs:
+  github-host:
+    description: 'GitHub host (e.g., github.com or github.mycompany.com)'
+    required: false
+    default: 'github.com'
   anthropic-api-key:
     description: 'Anthropic API key for Claude Code'
     required: true
@@ -104,6 +108,7 @@ runs:
       id: collect
       shell: bash
       env:
+        GH_HOST: ${{ inputs.github-host }}
         ANTHROPIC_API_KEY: ${{ inputs.anthropic-api-key }}
         GITHUB_TOKEN: ${{ inputs.github-token }}
         PR_URL: ${{ inputs.pr-url }}

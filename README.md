@@ -104,6 +104,54 @@ jobs:
 | `repo-owner` | Yes | Repository owner |
 | `repo-name` | Yes | Repository name |
 | `pr-number` | Yes | PR number |
+| `github-host` | No | GitHub host (default: `github.com`) |
+
+## GitHub Enterprise Support
+
+This action supports GitHub Enterprise Server (GHES) deployments. To use with GitHub Enterprise:
+
+### Configuration
+
+GitHub Enterprise cannot reference external actions from github.com. Fork this repository to your GHES instance and use your forked version:
+
+```yaml
+# Fork this action to your GHES organization first
+- uses: your-org/review-dojo-action@v1  # Replace with your GHES org
+  with:
+    github-host: github.mycompany.com  # Your GHES host
+    anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+    github-token: ${{ secrets.GITHUB_TOKEN }}
+    pr-url: ${{ github.event.client_payload.pr_url }}
+    repo-owner: ${{ github.event.client_payload.repo_owner }}
+    repo-name: ${{ github.event.client_payload.repo_name }}
+    pr-number: ${{ github.event.client_payload.pr_number }}
+```
+
+### Environment Variable Support
+
+This action respects the `GH_HOST` environment variable used by GitHub CLI, ensuring consistency with your existing GHES configuration.
+
+**Priority:** `GH_HOST` (environment) → `github-host` (input) → `github.com` (default)
+
+### Release Workflow for GHES
+
+If using GitHub Enterprise, you may want to update the bot email in your release workflow. Set the `GIT_BOT_EMAIL` repository variable:
+
+```yaml
+# In your repository settings, add a variable:
+# Name: GIT_BOT_EMAIL
+# Value: github-actions[bot]@users.noreply.github.mycompany.com
+```
+
+The release workflow will automatically use this value if configured.
+
+### Workflow Sample for GHES
+
+The `trigger-knowledge-collection.yml` workflow sample is available in `examples/workflows/`. Copy it to your `.github/workflows/` directory and update the `repository` field:
+
+```yaml
+repository: YOUR_ORG/YOUR_KNOWLEDGE_REPO  # Update to your GHES knowledge repo
+```
 
 ## Outputs
 

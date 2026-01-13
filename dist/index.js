@@ -74,13 +74,10 @@ var CodeExample = class _CodeExample {
     return this.bad === other.bad && this.good === other.good;
   }
   toString() {
-    if (this.isEmpty())
-      return "(no code example)";
+    if (this.isEmpty()) return "(no code example)";
     const parts = [];
-    if (this.bad)
-      parts.push(`Bad: ${this.bad.substring(0, 50)}...`);
-    if (this.good)
-      parts.push(`Good: ${this.good.substring(0, 50)}...`);
+    if (this.bad) parts.push(`Bad: ${this.bad.substring(0, 50)}...`);
+    if (this.good) parts.push(`Good: ${this.good.substring(0, 50)}...`);
     return parts.join(" | ");
   }
 };
@@ -90,14 +87,29 @@ var PRReference = class _PRReference {
   constructor(url) {
     this.url = url;
   }
-  static GITHUB_PR_PATTERN = /^https:\/\/github\.com\/[^/]+\/[^/]+\/pull\/\d+$/;
+  /**
+   * GitHub ホストを環境変数から取得
+   * 優先順位: GH_HOST → GITHUB_HOST → デフォルト (github.com)
+   */
+  static getGitHubHost() {
+    return process.env.GH_HOST || process.env.GITHUB_HOST || "github.com";
+  }
+  /**
+   * GitHub PR URL のバリデーションパターンを動的生成
+   */
+  static buildPRPattern() {
+    const host = _PRReference.getGitHubHost().replace(/\./g, "\\.");
+    return new RegExp(`^https:\\/\\/${host}\\/[^/]+\\/[^/]+\\/pull\\/\\d+$`);
+  }
   static create(url) {
     if (!url || typeof url !== "string") {
       throw new Error("PR reference URL must be a non-empty string");
     }
-    if (!_PRReference.GITHUB_PR_PATTERN.test(url)) {
+    const pattern = _PRReference.buildPRPattern();
+    if (!pattern.test(url)) {
+      const host = _PRReference.getGitHubHost();
       throw new Error(
-        `Invalid PR reference URL: ${url}. Must be a GitHub PR URL (e.g., https://github.com/owner/repo/pull/123)`
+        `Invalid PR reference URL: ${url}. Must be a GitHub PR URL (e.g., https://${host}/owner/repo/pull/123)`
       );
     }
     return new _PRReference(url);
@@ -119,7 +131,8 @@ var PRReference = class _PRReference {
    * リポジトリオーナーを抽出
    */
   getOwner() {
-    const match = this.url.match(/github\.com\/([^/]+)\//);
+    const host = _PRReference.getGitHubHost().replace(/\./g, "\\.");
+    const match = this.url.match(new RegExp(`${host}\\/([^/]+)\\/`));
     if (!match) {
       throw new Error(`Failed to extract owner from URL: ${this.url}`);
     }
@@ -129,7 +142,8 @@ var PRReference = class _PRReference {
    * リポジトリ名を抽出
    */
   getRepository() {
-    const match = this.url.match(/github\.com\/[^/]+\/([^/]+)\//);
+    const host = _PRReference.getGitHubHost().replace(/\./g, "\\.");
+    const match = this.url.match(new RegExp(`${host}\\/[^/]+\\/([^/]+)\\/`));
     if (!match) {
       throw new Error(`Failed to extract repository from URL: ${this.url}`);
     }
@@ -192,8 +206,7 @@ var SensitiveInfoMasker = class _SensitiveInfoMasker {
    * テキスト内の機密情報をマスクする
    */
   mask(text) {
-    if (!text)
-      return text;
+    if (!text) return text;
     let masked = text;
     for (const { pattern, replacement } of _SensitiveInfoMasker.SENSITIVE_PATTERNS) {
       masked = masked.replace(pattern, replacement);
@@ -426,8 +439,7 @@ var KnowledgeFile = class _KnowledgeFile {
    * 超過分は発生回数の少ないものからアーカイブ
    */
   enforceLimit() {
-    if (this.items.length <= _KnowledgeFile.MAX_ITEMS)
-      return;
+    if (this.items.length <= _KnowledgeFile.MAX_ITEMS) return;
     this.items.sort((a, b) => b.getOccurrences() - a.getOccurrences());
     const archivedItems = this.items.slice(_KnowledgeFile.MAX_ITEMS);
     const archivedCount = archivedItems.length;
@@ -870,8 +882,7 @@ var MarkdownSerializer = class {
   parseSection(section) {
     const lines = section.split("\n");
     const title = lines[0].trim();
-    if (!title)
-      return null;
+    if (!title) return null;
     const severityMatch = section.match(/\*\*重要度\*\*:\s*(.+)/);
     const occurrencesMatch = section.match(/\*\*発生回数\*\*:\s*(\d+)/);
     const summaryMatch = section.match(/\*\*概要\*\*:\s*(.+)/);
@@ -885,6 +896,24 @@ var MarkdownSerializer = class {
         references.push(...urls);
       }
     }
+    const codeExampleSection = section.match(/\*\*コード例\*\*:\s*([\s\S]*?)(?=\n-\s+\*\*|$)/);
+    let codeExample;
+    if (codeExampleSection) {
+      const codeBlocks = codeExampleSection[1].match(/```[\s\S]*?```/g);
+      if (codeBlocks) {
+        const badBlock = codeBlocks.find((block) => block.includes("// NG"));
+        const goodBlock = codeBlocks.find((block) => block.includes("// OK"));
+        if (badBlock || goodBlock) {
+          codeExample = {};
+          if (badBlock) {
+            codeExample.bad = badBlock.replace(/```\n?/g, "").replace(/\s*\/\/\s*NG\n/, "").trim();
+          }
+          if (goodBlock) {
+            codeExample.good = goodBlock.replace(/```\n?/g, "").replace(/\s*\/\/\s*OK\n/, "").trim();
+          }
+        }
+      }
+    }
     const occurrences = occurrencesMatch ? parseInt(occurrencesMatch[1], 10) : 1;
     const item = KnowledgeItem.fromSerialized({
       title,
@@ -893,7 +922,8 @@ var MarkdownSerializer = class {
       recommendation: recommendationMatch ? recommendationMatch[1].trim() : "",
       occurrences,
       file_path: targetFileMatch ? targetFileMatch[1].trim() : void 0,
-      pr_urls: references
+      pr_urls: references,
+      code_example: codeExample
     });
     return item;
   }
@@ -970,7 +1000,7 @@ async function main() {
               knowledge_items: items
             });
             console.log(`Updated ${category}/${language}.md: ${count} items`);
-            return items.length;
+            return count;
           } catch (fileError) {
             console.error(`Error updating ${key}: ${fileError.message}`);
             return 0;
